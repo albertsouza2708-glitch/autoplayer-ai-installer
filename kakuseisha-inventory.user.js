@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Inventário técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.2.0
+// @version      0.2.1
 // @description  Leitura estática dos scripts públicos carregados pelo jogo, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory-tool.user.js
+// @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory-tool.user.js
 // @match        https://viladosdespertos.com/*
 // @match        https://www.viladosdespertos.com/*
