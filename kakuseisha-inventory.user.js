@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         KAKUSEISHA Inventory + Deep Scan
+// @name         KAKUSEISHA - Inventário técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @version      0.2.0
 // @description  Leitura estática dos scripts públicos carregados pelo jogo, sem executar ações.
