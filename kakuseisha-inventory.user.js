@@ -5,7 +5,7 @@
 // @description  Leitura estática dos scripts públicos carregados pelo jogo, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
-// @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory-tool.user.js
+// @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @match        https://viladosdespertos.com/*
 // @match        https://www.viladosdespertos.com/*
 // @run-at       document-idle
