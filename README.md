@@ -5,7 +5,7 @@
 - [AutoPlayer AI 5.0.0-beta.1 — instalar no Tampermonkey](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/autoplayer-ai-5.user.js)
 - [Código-fonte 5.0](https://github.com/albertsouza2708-glitch/autoplayer-ai-installer/blob/main/autoplayer-ai-5.user.js)
 - [AutoPlayer AI 4.0 — versão anterior](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/autoplayer-ai-4.user.js)
-- [KAKUSEISHA — analisador técnico](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js)
+- [KAKUSEISHA 0.5 — analisador ampliado de missões, NPCs, inventário, loja e oficina](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js)
 
 ## AutoPlayer AI 5.0 beta
 
