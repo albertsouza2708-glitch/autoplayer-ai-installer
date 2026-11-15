@@ -170,7 +170,7 @@ function battleAction(tipo,id,turno){
  const acaoId=typeof novoPedido==="function"?novoPedido():undefined;
  const payload={tipo,turno,acaoId};
  if(id!==undefined&&id!==null)payload.id=id;
- busy=true;lastTurn=String(turno)+":"+String(tipo)+":"+String(id||"");
+ busy=true;lastTurn=String(turno)+":"+String((JG.est.eu.rpg.batalha||{}).m||"");
  lastActionAt=now();log("combate: "+tipo+(id?" · "+id:""));
  let result;
  try{result=batalhaApi("batalha-acao",payload)}
@@ -191,7 +191,7 @@ function smartCombat(){
  }
  if(JG.ocupado||JG.batVista||busy||b.turno===undefined)return true;
  const turn=String(b.turno)+":"+String(b.m||"");
- if(turn===lastTurn)return true;
+ if(turn===lastTurn||now()-lastActionAt<900)return true;
  const p=b.p||{},hp=Number(p.hp||0),hpMax=Math.max(1,Number(p.hpMax||1)),mp=Number(p.mp||0),mpMax=Math.max(1,Number(p.mpMax||1));
  const root=document.querySelector("#jgC")||document;
  const call=(type,id)=>battleAction(type,id,b.turno);
