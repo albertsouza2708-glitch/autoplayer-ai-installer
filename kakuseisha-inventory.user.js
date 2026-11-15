@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.5
-// @description  Inventaria recursos same-origin e extrai contexto de funções e rotas de batalha nos scripts inline, sem executar ações.
+// @version      0.3.6
+// @description  Inventaria recursos same-origin e extrai extração de funções completas de missão, combate e raid nos scripts inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -86,6 +86,32 @@
     return uniq(found);
   }
 
+  function extractNamedFunction(source, name) {
+    const re = new RegExp("\\b(?:async\\s+)?function\\s+" + name + "\\s*\\(");
+    const m = re.exec(source);
+    if (!m) return null;
+    let open = source.indexOf("{", m.index + m[0].length);
+    if (open < 0) return null;
+    let depth = 0, quote = "", lineComment = false, blockComment = false, escape = false;
+    for (let i = open; i < source.length; i++) {
+      const ch = source[i], nx = source[i + 1];
+      if (lineComment) { if (ch === "\\n") lineComment = false; continue; }
+      if (blockComment) { if (ch === "*" && nx === "/") { blockComment = false; i++; } continue; }
+      if (quote) {
+        if (escape) { escape = false; continue; }
+        if (ch === "\\\\") { escape = true; continue; }
+        if (ch === quote) quote = "";
+        continue;
+      }
+      if (ch === "/" && nx === "/") { lineComment = true; i++; continue; }
+      if (ch === "/" && nx === "*") { blockComment = true; i++; continue; }
+      if (ch === "'" || ch === '"' || ch === "`") { quote = ch; continue; }
+      if (ch === "{") depth++;
+      else if (ch === "}" && --depth === 0) return source.slice(m.index, i + 1);
+    }
+    return source.slice(m.index, Math.min(source.length, m.index + 12000));
+  }
+
   function extract(source) {
     const declarations = [];
     const declRe = /\bfunction\s+([\w$]+)\s*\(|\b(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[\w$]+\s*=>)/g;
@@ -134,7 +160,7 @@
     const queue = getUrls();
     const clues = resourceClues();
     const seen = new Set();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.5","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.6","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
       "### Scripts declarados no HTML",
       ...clues.scripts.map(x => x.type+" | "+x.src),
       "### Preloads de módulos/scripts",
@@ -158,7 +184,11 @@
         return [
           "Inline #"+(i+1)+":",
           ...(hits.length ? hits.map(x => "- "+clean(String(x)).slice(0,360)) : ["- Sem nomes/controles relevantes identificados"]),
-          ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : [])
+          ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : []),
+          ...(i === 1 ? ["FUNÇÕES COMPLETAS PARA AUTOMACAO:", ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","raidAcao","ligarRaidBox","ligarRaid","api"].map(name => {
+            const fn = extractNamedFunction(source, name);
+            return fn ? "\\n--- " + name + " ---\\n" + fn.slice(0, 10000) : null;
+          }).filter(Boolean)] : [])
         ];
       }),
       ""];
