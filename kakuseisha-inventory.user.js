@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.4
-// @description  Inventaria recursos same-origin e analisa scripts externos e inline, sem executar ações.
+// @version      0.3.5
+// @description  Inventaria recursos same-origin e extrai contexto de funções e rotas de batalha nos scripts inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -134,7 +134,7 @@
     const queue = getUrls();
     const clues = resourceClues();
     const seen = new Set();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.4","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.5","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
       "### Scripts declarados no HTML",
       ...clues.scripts.map(x => x.type+" | "+x.src),
       "### Preloads de módulos/scripts",
@@ -144,9 +144,22 @@
       "",
       "### Scripts inline com pistas de jogo",
       ...[...document.scripts].filter(s => !s.src).flatMap((s,i) => {
-        const d = extract(s.textContent || "");
-        const hits = [...d.declarations, ...d.globals, ...d.endpoints, ...d.events, ...d.snippets].slice(0,12);
-        return hits.length ? ["Inline #"+(i+1)+":", ...hits.map(x => "- "+clean(String(x)).slice(0,260))] : [];
+        const source = s.textContent || "";
+        const d = extract(source);
+        const hits = [...d.declarations, ...d.globals, ...d.endpoints, ...d.events].slice(0,30);
+        const battleSnips = [];
+        const battleRe = /batalha-acao|batalha-fechar|raidAcao|irParaMissao|novaAtividade/gi;
+        for (const m of source.matchAll(battleRe)) {
+          const start = Math.max(0,m.index-420), end = Math.min(source.length,m.index+620);
+          const part = clean(source.slice(start,end));
+          if (!battleSnips.includes(part)) battleSnips.push(part);
+          if (battleSnips.length >= 18) break;
+        }
+        return [
+          "Inline #"+(i+1)+":",
+          ...(hits.length ? hits.map(x => "- "+clean(String(x)).slice(0,360)) : ["- Sem nomes/controles relevantes identificados"]),
+          ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : [])
+        ];
       }),
       ""];
     while (queue.length && seen.size < 60) {
