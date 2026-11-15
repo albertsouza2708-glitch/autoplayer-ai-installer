@@ -187,10 +187,11 @@
           "Inline #"+(i+1)+":",
           ...(hits.length ? hits.map(x => "- "+clean(String(x)).slice(0,360)) : ["- Sem nomes/controles relevantes identificados"]),
           ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : []),
-          ...(["FUNÇÕES COMPLETAS PARA AUTOMACAO:", ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","raidAcao","ligarRaidBox","ligarRaid","api"].map(name => {
+          "FUNÇÕES COMPLETAS PARA AUTOMACAO:",
+          ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","raidAcao","ligarRaidBox","ligarRaid","api"].map(name => {
             const fn = extractNamedFunction(source, name);
             return fn ? "\n--- " + name + " ---\n" + fn.slice(0, 10000) : null;
-          }).filter(Boolean))
+          }).filter(Boolean)
         ];
       }),
       ""];
