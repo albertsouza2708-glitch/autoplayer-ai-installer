@@ -95,11 +95,11 @@
     let depth = 0, quote = "", lineComment = false, blockComment = false, escape = false;
     for (let i = open; i < source.length; i++) {
       const ch = source[i], nx = source[i + 1];
-      if (lineComment) { if (ch === "\\n") lineComment = false; continue; }
+      if (lineComment) { if (ch === "\n") lineComment = false; continue; }
       if (blockComment) { if (ch === "*" && nx === "/") { blockComment = false; i++; } continue; }
       if (quote) {
         if (escape) { escape = false; continue; }
-        if (ch === "\\\\") { escape = true; continue; }
+        if (ch === "\\") { escape = true; continue; }
         if (ch === quote) quote = "";
         continue;
       }
@@ -187,7 +187,7 @@
           ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : []),
           ...(i === 1 ? ["FUNÇÕES COMPLETAS PARA AUTOMACAO:", ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","raidAcao","ligarRaidBox","ligarRaid","api"].map(name => {
             const fn = extractNamedFunction(source, name);
-            return fn ? "\\n--- " + name + " ---\\n" + fn.slice(0, 10000) : null;
+            return fn ? "\n--- " + name + " ---\n" + fn.slice(0, 10000) : null;
           }).filter(Boolean)] : [])
         ];
       }),
