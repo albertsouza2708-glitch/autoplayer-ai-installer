@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.9
+// @version      0.4.0
 // @description  Inventaria recursos same-origin e extrai extração de funções completas de missão, combate e raid nos scripts inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -25,18 +25,22 @@
   const root = host.attachShadow({mode:"open"});
   root.innerHTML = `
     <style>
-      .wrap{background:#172033;border:1px solid #64748b;border-radius:12px;padding:10px;box-shadow:0 4px 20px #0008;max-width:min(340px,calc(100vw - 20px))}
+      .wrap{position:relative;background:#172033;border:1px solid #64748b;border-radius:12px;padding:10px;padding-top:38px;box-shadow:0 4px 20px #0008;max-width:min(340px,calc(100vw - 20px))}
+      #close{position:absolute;right:8px;top:7px;background:#475569;color:#fff;border:0;border-radius:7px;width:28px;height:26px;padding:0;font-size:18px;line-height:1;cursor:pointer}
+      #close:hover{background:#dc2626}
       button{background:#7c3aed;color:white;border:0;border-radius:8px;padding:10px 12px;font-weight:700}
       p,#status{font-size:11px;color:#cbd5e1;margin:8px 0 0}
       #status{color:#fde68a}
     </style>
     <div class="wrap">
+      <button id="close" type="button" title="Fechar analisador" aria-label="Fechar">×</button>
       <button id="scan">Analisar código do jogo</button>
       <button id="download" disabled style="margin-left:6px;background:#0f766e">Baixar relatório .txt</button>
       <p>Leitura estática de JavaScript público. Não clica, não luta, não envia comandos e não lê cookies, senhas ou valores de campos.</p>
       <div id="status">Pronto para analisar.</div>
     </div>`;
   document.documentElement.appendChild(host);
+  root.getElementById("close").addEventListener("click", () => host.remove());
 
   const uniq = a => [...new Set(a)];
   const clean = s => s.replace(/\s+/g," ").trim();
