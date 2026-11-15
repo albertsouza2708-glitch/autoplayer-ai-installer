@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAKUSEISHA AutoPlayer AI 3.0
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.6.1
+// @version      0.6.2
 // @description  AutoPlayer autônomo: missões, navegação real do personagem, combate, exploração, inventário, equipamentos e compras seguras.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-autoplayer.user.js
@@ -42,8 +42,9 @@
       .foot{padding:7px 12px;color:#8293ad;font-size:10px;border-top:1px solid #29384e}
       .on{color:#86efac}.off{color:#fca5a5}
     </style>
+    <button id="reopen" title="Abrir painel do AutoPlayer" style="display:none;width:48px;height:48px;border-radius:50%;background:#15803d;border:2px solid #86efac;box-shadow:0 5px 20px #000b;font-size:20px;padding:0">🤖</button>
     <div class="panel">
-      <div class="head"><div>KAKUSEISHA <small>AutoPlayer AI · 0.6.0</small></div><button id="close" title="Fechar">×</button></div>
+      <div class="head"><div>KAKUSEISHA <small>AutoPlayer AI · 0.6.2</small></div><button id="close" title="Minimizar painel">×</button></div>
       <div class="body">
         <div class="actions"><button id="start">▶ INICIAR</button><button id="stop" disabled>■ PAUSAR</button></div>
         <select id="mode"><option value="balanced">Autônomo completo</option><option value="missions">Priorizar missões</option><option value="explore">Priorizar exploração</option></select>
@@ -451,7 +452,18 @@
   }
   $("start").addEventListener("click",start);
   $("stop").addEventListener("click",stop);
-  $("close").addEventListener("click",()=>{stop();panelClosed=true;keepPanelAlive.disconnect();host.remove();});
+  $("close").addEventListener("click",()=>{
+    // Minimiza somente a interface: o AutoPlayer continua executando em segundo plano.
+    shadow.querySelector(".panel").style.display = "none";
+    $("reopen").style.display = "block";
+    host.style.width = "48px";
+    $("reopen").setAttribute("aria-label","Reabrir painel do AutoPlayer");
+  });
+  $("reopen").addEventListener("click",()=>{
+    shadow.querySelector(".panel").style.display = "block";
+    $("reopen").style.display = "none";
+    host.style.width = "min(330px,calc(100vw - 20px))";
+  });
   window.addEventListener("beforeunload",stop,{once:true});
   status("Painel carregado. Entre no jogo e toque em INICIAR.");
   if (gameReady()) updateHud(state());
