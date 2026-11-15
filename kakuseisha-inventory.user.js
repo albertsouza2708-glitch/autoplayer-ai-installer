@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.1
-// @description  Análise estática ampliada dos scripts públicos do jogo, sem executar ações. Corrige inicialização da interface.
+// @version      0.3.2
+// @description  Análise estática ampliada dos scripts públicos do jogo, sem executar ações. Inclui descoberta recursiva de módulos JavaScript e ES modules.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -48,9 +48,21 @@
     ].filter(Boolean).map(raw => {
       try {
         const u = new URL(raw, location.href);
-        return u.origin === location.origin && /\.js$/i.test(u.pathname) ? u.href : null;
+        return u.origin === location.origin && /\.(?:m?js)$/i.test(u.pathname) ? u.href : null;
       } catch (_) { return null; }
     }).filter(Boolean));
+  }
+
+  function discoverModuleUrls(source, baseUrl) {
+    const found = [];
+    const re = /["'`]([^"'\`]{1,240}\.(?:m?js)(?:\?[^"'\`]*)?)["'`]/gi;
+    for (const m of source.matchAll(re)) {
+      try {
+        const u = new URL(m[1], baseUrl);
+        if (u.origin === location.origin && /\.(?:m?js)$/i.test(u.pathname)) found.push(u.href);
+      } catch (_) {}
+    }
+    return uniq(found);
   }
 
   function extract(source) {
@@ -98,19 +110,26 @@
   }
 
   async function scan() {
-    const urls = getUrls();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.0","Página: "+location.origin+location.pathname,"Arquivos JS encontrados: "+urls.length,""];
-    for (const url of urls) {
+    const queue = getUrls();
+    const seen = new Set();
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.2","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,""];
+    while (queue.length && seen.size < 60) {
+      const url = queue.shift();
+      if (seen.has(url)) continue;
+      seen.add(url);
       out.push("### "+new URL(url).pathname);
       try {
         const response = await fetch(url,{credentials:"same-origin"});
         if (!response.ok) { out.push("Falha HTTP: "+response.status,""); continue; }
         const source = await response.text();
+        const discovered = discoverModuleUrls(source,url).filter(x=>!seen.has(x));
+        for (const next of discovered) if (!queue.includes(next) && queue.length + seen.size < 60) queue.push(next);
         const data = extract(source);
         out.push("Tamanho: "+source.length+" caracteres");
         out.push("Funções com nomes relevantes: "+(data.declarations.join(", ")||"nenhuma identificada"));
         out.push("Funções globais relevantes: "+(data.globals.join(", ")||"nenhuma identificada"));
         out.push("Rotas estáticas: "+(data.endpoints.join(", ")||"nenhuma identificada"));
+        out.push("Módulos JS/MJS referenciados: "+(discovered.map(x=>new URL(x).pathname).join(", ")||"nenhum encontrado"));
         out.push("Eventos e controles relacionados:");
         out.push(...(data.events.length?data.events.map((x,i)=>(i+1)+". "+x):["Nenhum trecho identificado"]));
         out.push("Trechos próximos a palavras de ação:");
@@ -118,6 +137,8 @@
       } catch(e) { out.push("Falha ao ler arquivo: "+String(e).slice(0,160)); }
       out.push("");
     }
+    out.push("Total de arquivos analisados: "+seen.size);
+    if (queue.length) out.push("Limite de segurança atingido; arquivos restantes: "+queue.length);
     return out.join("\n");
   }
 
