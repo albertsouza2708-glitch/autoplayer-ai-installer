@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAKUSEISHA AutoPlayer AI 3.0
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.6.0
+// @version      0.6.1
 // @description  AutoPlayer autônomo: missões, navegação real do personagem, combate, exploração, inventário, equipamentos e compras seguras.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-autoplayer.user.js
@@ -17,7 +17,7 @@
   "use strict";
 
   const ID = "kakuseisha-autoplayer-ai";
-  document.getElementById(ID)?.remove();
+  if (document.getElementById(ID)) return;
 
   const host = document.createElement("div");
   host.id = ID;
@@ -59,10 +59,18 @@
       <div class="foot">Use somente nesta página e mantenha a aba aberta. Pausar interrompe novas ações.</div>
     </div>`;
   document.documentElement.appendChild(host);
+  let panelClosed = false;
+  const keepPanelAlive = new MutationObserver(() => {
+    if (!panelClosed && !host.isConnected && document.documentElement) {
+      document.documentElement.appendChild(host);
+    }
+  });
+  keepPanelAlive.observe(document.documentElement, {childList:true,subtree:true});
 
   const $ = id => shadow.getElementById(id);
   let running = false, busy = false, timer = 0, lastActionAt = 0;
   let lastMission = "", missionCount = 0, shopUntil = 0, lastShopTry = 0, lastShopVisit = 0;
+  let finishingMissionId = "", finishRequestedAt = 0;
   let targetObject = null, targetSince = 0, lastRefresh = 0;
   const logLines = [];
 
@@ -143,15 +151,35 @@
   }
   function missionCandidate(s) {
     const d = s.d, done = new Set(s.eu.feitasHoje || []);
-    let list = Array.isArray(d.diarias) ? d.diarias.filter(m => !done.has(m.id)) : [];
-    if (!list.length) list = Array.isArray(d.missoes) ? d.missoes : [];
     const open = typeof missoesAbertas === "function" ? missoesAbertas() : true;
-    if (!open || !list.length) return null;
-    return list.filter(m=>m && m.id).sort((a,b) => {
-      const sa = num(a.moedas || 1) / Math.max(1,num(a.seg || 30));
-      const sb = num(b.moedas || 1) / Math.max(1,num(b.seg || 30));
-      return sb-sa;
-    })[0] || null;
+    if (!open) return null;
+    // O jogo mantém duas listas distintas: d.missoes (repetíveis) e d.diarias.
+    // Avaliamos as duas juntas; nunca damos prioridade automática às diárias.
+    const all = [
+      ...(Array.isArray(d.missoes) ? d.missoes.map(m => ({...m,_daily:false})) : []),
+      ...(Array.isArray(d.diarias) ? d.diarias.filter(m => !done.has(m.id)).map(m => ({...m,_daily:true})) : [])
+    ].filter(m => m && m.id);
+    if (!all.length) return null;
+    const player = s.p;
+    const distanceCost = m => {
+      try {
+        const def = typeof misDe === "function" ? misDe(m.id) : m;
+        const where = m.onde || (def && def.onde);
+        if (where && typeof alvoDe === "function") {
+          const target = alvoDe(where, player);
+          return Math.hypot(target.x-player.x,target.y-player.y) / 60;
+        }
+      } catch (_) {}
+      return 0;
+    };
+    return all.map(m => {
+      const reward = Math.max(0,num(m.moedas));
+      const duration = Math.max(8,num(m.seg || 30));
+      const travel = distanceCost(m);
+      // Score de retorno por tempo estimado; recompensa maior vence quando o custo é semelhante.
+      const score = reward / (duration + travel);
+      return {m,score,reward,travel,duration};
+    }).sort((a,b) => b.score-a.score || b.reward-a.reward)[0]?.m || null;
   }
   async function startMission(s) {
     const m = missionCandidate(s);
@@ -218,22 +246,31 @@
     return true;
   }
   async function finishMissionIfReady(s) {
-    if (!s.g.atual) return false;
-    try { if (typeof irParaMissao === "function") irParaMissao(); } catch (_) {}
-    const button = document.getElementById("jConc");
-    const expired = typeof agoraSrv === "function" && s.g.atual.fim && num(s.g.atual.fim)-num(agoraSrv()) <= 0;
-    if (button && !button.disabled) {
-      status("Missão concluída. Resgatando recompensa…");
-      button.click();
+    const active = s.g.atual;
+    if (!active) { finishingMissionId = ""; finishRequestedAt = 0; return false; }
+    const missionId = String(active.m || active.id || active.ini || "atual");
+    if (finishingMissionId && finishingMissionId !== missionId) {
       missionCount++;
-      log("Recompensa da missão solicitada.");
+      log("Missão anterior encerrada; recompensa/estado atualizado pelo jogo.");
+      finishingMissionId = ""; finishRequestedAt = 0;
+    }
+    try { if (typeof irParaMissao === "function") irParaMissao(); } catch (_) {}
+    const button = document.querySelector("#jgC #jConc") || document.getElementById("jConc");
+    if (finishingMissionId === missionId && Date.now()-finishRequestedAt < 15000) {
+      status("Pedido de conclusão enviado. Aguardando confirmação do servidor…");
       return true;
     }
-    if (expired && button) {
-      status("Tempo encerrado; aguardando o jogo liberar CONCLUIR.");
+    if (button && !button.disabled && !s.g.ocupado) {
+      finishingMissionId = missionId;
+      finishRequestedAt = Date.now();
+      status("Objetivo concluído! Clicando em CONCLUIR para receber a recompensa…");
+      button.click();
+      log("Clique em CONCLUIR enviado para a missão " + missionId + ".");
       return true;
     }
-    status("A caminho do objetivo da missão…");
+    const expired = typeof agoraSrv === "function" && active.fim && num(active.fim)-num(agoraSrv()) <= 0;
+    if (expired) status("Tempo da missão terminou; aguardando o jogo liberar CONCLUIR.");
+    else status("Missão ativa: seguindo até o local e aguardando a conclusão do objetivo…");
     return true;
   }
   function explorationTarget(s) {
@@ -411,7 +448,7 @@
   }
   $("start").addEventListener("click",start);
   $("stop").addEventListener("click",stop);
-  $("close").addEventListener("click",()=>{stop();host.remove();});
+  $("close").addEventListener("click",()=>{stop();panelClosed=true;keepPanelAlive.disconnect();host.remove();});
   window.addEventListener("beforeunload",stop,{once:true});
   status("Painel carregado. Entre no jogo e toque em INICIAR.");
   if (gameReady()) updateHud(state());
