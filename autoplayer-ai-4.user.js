@@ -36,7 +36,7 @@ window.addEventListener("message",e=>{const d=e.data;if(e.source!==window||e.ori
 function pageBridge(){
 "use strict";
 const CHANNEL="AUTOPLAYER_AI_4_BRIDGE";if(window.__APAI4)return;window.__APAI4=true;
-let running=false,autoMissions=false,autoCombat=false,autoForge=false,busy=false,lastMission="",lastTurn="",lastForgeKey="",actionAt=0,log="inicializando";
+let running=false,autoMissions=false,autoCombat=false,autoForge=false,busy=false,lastMission="",lastTurn="",lastForgeKey="",missionPanelOpened=false,forgeStage=0,actionAt=0,log="inicializando";
 const now=()=>Date.now(),game=()=>typeof JG!=="undefined"&&JG&&JG.tela==="jogando"&&JG.est&&JG.est.eu;
 const norm=s=>(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 const visible=el=>!!(el&&el.isConnected&&el.getClientRects().length&&!el.disabled);
@@ -44,7 +44,7 @@ const buttons=()=>[...document.querySelectorAll("button")].filter(visible);
 const clickLabel=(re,scope=document)=>{const b=[...scope.querySelectorAll("button")].find(x=>visible(x)&&re.test(norm(x.innerText||x.textContent)));if(!b)return false;b.click();actionAt=now();log="interagindo: "+norm(b.innerText||b.textContent).slice(0,55);return true};
 const getState=()=>{try{if(!game())return{player:"",screen:typeof JG!=="undefined"?JG.tela:"carregando",activity:log,running,missions:autoMissions,combat:autoCombat,forge:autoForge};const eu=JG.est.eu,R=eu.rpg||{},b=R.batalha,m=JG.atual,md=m&&typeof misDe==="function"?misDe(m.m):null,mon=b&&!b.fim&&typeof monDe==="function"?monDe(b.m):null;return{player:JG.at||eu.nome||"jogador",screen:JG.tela,mission:m?(md&&md.nome||"missão ativa"):"",battle:b&&!b.fim?(mon&&mon.nome||"em andamento"):"",hp:b&&b.p?b.p.hp+"/"+b.p.hpMax:"-",mp:b&&b.p?b.p.mp+"/"+b.p.mpMax:"-",activity:log,running,missions:autoMissions,combat:autoCombat,forge:autoForge}}catch(_){return{activity:"lendo estado do jogo",running,missions:autoMissions,combat:autoCombat,forge:autoForge}}};
 const publish=()=>window.postMessage({channel:CHANNEL,direction:"state",payload:getState()},location.origin),setLog=s=>{log=s;publish()};
-window.addEventListener("message",e=>{const d=e.data;if(e.source!==window||e.origin!==location.origin||!d||d.channel!==CHANNEL||d.direction!=="command")return;if(d.action==="configure"){const v=d.value||{};running=!!v.running;autoMissions=running&&!!v.missions;autoCombat=running&&!!v.combat;autoForge=running&&!!v.forge;if(!running){lastMission="";lastTurn="";lastForgeKey=""}setLog(running?"autopiloto ligado":"autopiloto parado")}});
+window.addEventListener("message",e=>{const d=e.data;if(e.source!==window||e.origin!==location.origin||!d||d.channel!==CHANNEL||d.direction!=="command")return;if(d.action==="configure"){const v=d.value||{};running=!!v.running;autoMissions=running&&!!v.missions;autoCombat=running&&!!v.combat;autoForge=running&&!!v.forge;if(!running){lastMission="";lastTurn="";lastForgeKey="";missionPanelOpened=false;forgeStage=0}setLog(running?"autopiloto ligado":"autopiloto parado")}});
 function smartCombat(){
 const R=JG.est.eu.rpg||{},b=R.batalha;if(!b)return false;
 if(b.fim){if(typeof batalhaApi==="function"&&!busy){busy=true;lastTurn="fim:"+String(b.m||"");Promise.resolve(batalhaApi("batalha-fechar",{})).catch(()=>{}).finally(()=>{busy=false;setLog("batalha encerrada; retomando missão")});return true}return false}
@@ -63,19 +63,18 @@ const defend=document.querySelector("#jgC #batDef");if(defend&&visible(defend)&&
 }
 function missionAutomation(){
 if(!autoMissions||!game())return false;const active=JG.atual;
-if(active&&typeof irParaMissao==="function"){const key=String(active.ini||active.m||"active");if(key!==lastMission||!JG.p||!JG.p.ir||JG.p.ir.volta){irParaMissao();lastMission=key;setLog("seguindo missão: "+key)}}
+if(active){missionPanelOpened=false;if(typeof irParaMissao==="function"){const key=String(active.ini||active.m||"active");if(key!==lastMission||!JG.p||!JG.p.ir||JG.p.ir.volta){irParaMissao();lastMission=key;setLog("seguindo missão: "+key)}}}
 const dialog=document.querySelector(".dlg:not(.esconde),#npcDlg:not(.esconde),#dialogo:not(.esconde),[role=dialog]");
 if(dialog&&clickLabel(/^(conversar|falar|interagir|aceitar|aceitar missao|entregar|concluir|continuar|confirmar)( agora)?$/,dialog))return true;
-if(!active){const tab=buttons().find(b=>/^(missoes|quests)$/.test(norm(b.innerText||b.textContent)));if(tab){tab.click();actionAt=now();setLog("abrindo painel de missões");return true}if(clickLabel(/^(aceitar|aceitar missao|iniciar missao|pegar missao|comecar missao)$/))return true}
+if(!active){if(!missionPanelOpened){const tab=buttons().find(b=>/^(missoes|quests)$/.test(norm(b.innerText||b.textContent)));if(tab){tab.click();missionPanelOpened=true;actionAt=now();setLog("abrindo painel de missões");return true}}if(clickLabel(/^(aceitar|aceitar missao|iniciar missao|pegar missao|comecar missao)$/))return true}
 else if(clickLabel(/^(entregar missao|concluir missao|resgatar recompensa|entregar|concluir)$/))return true;
 return false
 }
 function forgeAutomation(){
 if(!autoForge||!game()||JG.atual||(JG.est.eu.rpg&&JG.est.eu.rpg.batalha&&!JG.est.eu.rpg.batalha.fim))return false;
-if(clickLabel(/^(loja|mercado)$/))return true;
-if(clickLabel(/^(oficina|ferreiro|⚒ oficina)$/))return true;
-const upgrade=buttons().find(b=>/^(evoluir arma|melhorar arma|aprimorar arma|evoluir equipamento)$/.test(norm(b.innerText||b.textContent)));
-if(upgrade){const key=norm(upgrade.innerText||upgrade.textContent);if(key!==lastForgeKey){lastForgeKey=key;upgrade.click();actionAt=now();setLog("oficina: melhoria solicitada");return true}}
+if(forgeStage===0){if(clickLabel(/^(loja|mercado)$/)){forgeStage=1;return true}return false}
+if(forgeStage===1){if(clickLabel(/^(oficina|ferreiro|⚒ oficina)$/)){forgeStage=2;return true}return false}
+if(forgeStage===2){const upgrade=buttons().find(b=>/^(evoluir arma|melhorar arma|aprimorar arma|evoluir equipamento)$/.test(norm(b.innerText||b.textContent)));if(upgrade){const key=norm(upgrade.innerText||upgrade.textContent);if(key!==lastForgeKey){lastForgeKey=key;forgeStage=3;upgrade.click();actionAt=now();setLog("oficina: melhoria solicitada");return true}}}
 return false
 }
 function tick(){
