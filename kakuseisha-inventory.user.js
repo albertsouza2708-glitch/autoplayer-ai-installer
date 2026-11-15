@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.8
+// @version      0.3.9
 // @description  Inventaria recursos same-origin e extrai extração de funções completas de missão, combate e raid nos scripts inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -162,7 +162,7 @@
     const queue = getUrls();
     const clues = resourceClues();
     const seen = new Set();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.8","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.9","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
       "### Scripts declarados no HTML",
       ...clues.scripts.map(x => x.type+" | "+x.src),
       "### Preloads de módulos/scripts",
@@ -188,7 +188,15 @@
           ...(hits.length ? hits.map(x => "- "+clean(String(x)).slice(0,360)) : ["- Sem nomes/controles relevantes identificados"]),
           ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : []),
           "FUNÇÕES COMPLETAS PARA AUTOMACAO:",
-          ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","raidAcao","ligarRaidBox","ligarRaid","api"].map(name => {
+          ...[
+            "novaAtividade","irParaMissao","minhaAtividade","renderColeta","txtRecomp",
+            "subDiarias","renderEvento","animEventoSamurai","animEventoPets","ligarEvento",
+            "ligarDiarias","renderCacar","ligarCacar","batalhaVista","renderBatalha",
+            "animaBatalha","fxDoEvento","batalhaApi","ligarBatalha","comparar",
+            "objetosExplor","desenhaExplor","explorEm","abrirExplor","pxItemPerto",
+            "limpaAtCli","nomeLugarMissao","usarBarra","raidAcao","ligarRaidBox",
+            "ligarRaid","api"
+          ].map(name => {
             const fn = extractNamedFunction(source, name);
             return fn ? "\n--- " + name + " ---\n" + fn.slice(0, 10000) : null;
           }).filter(Boolean)
@@ -252,7 +260,7 @@
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
     a.href=url;
-    a.download="kakuseisha-static-analysis-0.3.8.txt";
+    a.download="kakuseisha-static-analysis-0.3.9.txt";
     document.body.appendChild(a);
     a.click();
     a.remove();
