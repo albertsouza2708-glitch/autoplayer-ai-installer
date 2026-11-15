@@ -2,26 +2,28 @@
 
 ## Instalação
 
-- [AutoPlayer AI 4.0.0-alpha.1 — instalar no Tampermonkey](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/autoplayer-ai-4.user.js)
-- [Código-fonte 4.0](https://github.com/albertsouza2708-glitch/autoplayer-ai-installer/blob/main/autoplayer-ai-4.user.js)
-- [AutoPlayer AI 3.0.0 — versão anterior](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/autoplayer-ai-3.user.js)
-- [KAKUSEISHA — analisador técnico](https://github.com/albertsouza2708-glitch/autoplayer-ai-installer/blob/main/kakuseisha-inventory.user.js)
+- [AutoPlayer AI 5.0.0-beta.1 — instalar no Tampermonkey](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/autoplayer-ai-5.user.js)
+- [Código-fonte 5.0](https://github.com/albertsouza2708-glitch/autoplayer-ai-installer/blob/main/autoplayer-ai-5.user.js)
+- [AutoPlayer AI 4.0 — versão anterior](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/autoplayer-ai-4.user.js)
+- [KAKUSEISHA — analisador técnico](https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js)
 
-## AutoPlayer AI 4.0 alpha
+## AutoPlayer AI 5.0 beta
 
-- Painel compacto, recolhível, arrastável e com botão X.
-- Segue a missão ativa com a função nativa `irParaMissao()`.
-- Tenta lidar com botões de diálogo/aceite/entrega quando esses controles estão visíveis.
-- Combate por turnos com prioridade para cura, poções, poder do pet, habilidades e defesa.
-- Fecha a batalha concluída pela função nativa do jogo.
-- Detecta opções visíveis da Loja/Oficina e tenta acionar a melhoria da arma uma única vez por opção.
-- Botão para parar todas as automações.
+### O que foi implementado
+- Painel móvel por toque, posição salva no navegador, minimização e botão X.
+- Ponte de execução no contexto da página para testar acesso às variáveis/funções internas do jogo.
+- Diagnóstico explícito de acesso a `JG`, `irParaMissao`, `batalhaApi`, `novoPedido`, `monDe`, `misDe` e `renderJogo`.
+- Navegação pela missão atualmente ativa chamando a função nativa `irParaMissao()`; acompanha `JG.p.ir` e `JG.seguir`.
+- Monitor de progresso de posição; se não houver deslocamento por 12 segundos, tenta recalcular a rota pelo próprio motor do jogo.
+- Combate por turnos usando `batalhaApi()` e `novoPedido()`, com respeito a `JG.ocupado`, `JG.batVista` e ao turno atual.
+- Prioridade para defesa contra golpe carregado, cura disponível, poder do pet e habilidades disponíveis.
+- Fechamento nativo de batalhas concluídas.
+- Não envia comandos de API inventados nem tenta aceitar missão, falar com NPC ou aprimorar arma por endpoints não confirmados.
 
-## Limitações conhecidas da alpha
+### Limitações que ainda exigem integração e teste
+- O jogo precisa expor as referências internas no contexto global de página. O painel mostra se a ponte consegue acessar `JG` e as funções nativas.
+- O relatório estático 0.3.9 confirma a navegação e o combate, mas não documenta o fluxo completo de aceitar novas missões, selecionar NPCs, iniciar diálogos ou executar a melhoria na oficina.
+- Portanto, aceite de missões, conversa com NPC, deslocamento até ferreiro, compra/evolução, coleta, diárias, exploração e Raid ainda não estão declarados como automáticos nesta beta.
+- A movimentação real e o combate precisam ser testados no Firefox/Tampermonkey. A sintaxe JavaScript foi verificada; execução real no navegador ainda não foi validada.
 
-- Ainda não há integração confirmada com a lógica interna de localização/caminho até NPCs, nem com o sistema de seleção de missões oferecidas. Os diálogos só são acionados quando o próprio jogo apresenta os botões na tela.
-- A oficina depende dos botões reais de navegação e melhoria estarem disponíveis na interface. Não há garantia de deslocamento físico até um ferreiro.
-- Coleta, diárias, eventos, exploração e Raid ainda não fazem parte do ciclo autônomo.
-- Precisa de teste real no Firefox/Tampermonkey dentro do jogo. O arquivo foi publicado e sua sintaxe JavaScript foi verificada; ainda não foi validado em execução no navegador.
-
-A versão 4.0 é uma alpha de desenvolvimento. Use o botão **PARAR TUDO** se alguma ação não corresponder ao esperado.
+Use **PARAR** se o comportamento não corresponder ao esperado. A versão 5.0 é uma beta de integração com o motor nativo, não uma promessa de autonomia total antes dos testes.
