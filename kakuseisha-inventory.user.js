@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.6
-// @description  Inventaria recursos same-origin e extrai extração de funções completas de missão, combate e raid nos scripts inline, sem executar ações.
+// @version      0.3.7
+// @description  Analisa recursos same-origin, extrai funções de missão, combate e raid e permite baixar o relatório, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -28,14 +28,18 @@
       button{background:#7c3aed;color:white;border:0;border-radius:8px;padding:10px 12px;font-weight:700}
       p,#status{font-size:11px;color:#cbd5e1;margin:8px 0 0}
       #status{color:#fde68a}
+      button:disabled{opacity:.45;cursor:not-allowed}
+      #download{margin-left:6px;background:#0f766e}
     </style>
     <div class="wrap">
       <button id="scan">Analisar código do jogo</button>
+      <button id="download" disabled>Baixar relatório .txt</button>
       <p>Leitura estática de JavaScript público. Não clica, não luta, não envia comandos e não lê cookies, senhas ou valores de campos.</p>
       <div id="status">Pronto para analisar.</div>
     </div>`;
   document.documentElement.appendChild(host);
 
+  let lastReport = "";
   const uniq = a => [...new Set(a)];
   const clean = s => s.replace(/\s+/g," ").trim();
   const actionWord = /miss[aã]o|ca[cç]ar|lutar|ataque|atacar|batalha|combate|invent[aá]rio|mochila|equip|po[cç][aã]o|cura|heal|damage|enemy|inimigo|xp|experi[eê]ncia|recompensa|reward|colet|explor|raid|pet|di[aá]ria|claim|start|finish|complete|jogar|evento|comprar|vender|usar|drop|loot|energia|mana|vida|hp|mp/i;
@@ -160,7 +164,7 @@
     const queue = getUrls();
     const clues = resourceClues();
     const seen = new Set();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.6","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.7","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
       "### Scripts declarados no HTML",
       ...clues.scripts.map(x => x.type+" | "+x.src),
       "### Preloads de módulos/scripts",
@@ -185,9 +189,13 @@
           "Inline #"+(i+1)+":",
           ...(hits.length ? hits.map(x => "- "+clean(String(x)).slice(0,360)) : ["- Sem nomes/controles relevantes identificados"]),
           ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : []),
-          ...(i === 1 ? ["FUNÇÕES COMPLETAS PARA AUTOMACAO:", ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","raidAcao","ligarRaidBox","ligarRaid","api"].map(name => {
+          ...(i === 1 ? ["FUNÇÕES COMPLETAS - MISSÃO E COMBATE:", ...["irParaMissao","batalhaApi","ligarBatalha","renderBatalha","api"].map(name => {
             const fn = extractNamedFunction(source, name);
-            return fn ? "\n--- " + name + " ---\n" + fn.slice(0, 10000) : null;
+            return fn ? "\\n--- " + name + " ---\\n" + fn.slice(0, 10000) : null;
+          }).filter(Boolean)] : []),
+          ...(i === 2 ? ["FUNÇÕES COMPLETAS - RAID:", ...["raidAcao","ligarRaidBox","ligarRaid"].map(name => {
+            const fn = extractNamedFunction(source, name);
+            return fn ? "\\n--- " + name + " ---\\n" + fn.slice(0, 10000) : null;
           }).filter(Boolean)] : [])
         ];
       }),
@@ -221,11 +229,26 @@
     return out.join("\n");
   }
 
+  root.getElementById("download").addEventListener("click",()=>{
+    if(!lastReport) return;
+    const blob=new Blob([lastReport],{type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    link.href=url;
+    link.download="kakuseisha-relatorio-0.3.7.txt";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  });
+
   root.getElementById("scan").addEventListener("click",async()=>{
     const status=root.getElementById("status");
     status.textContent="Analisando arquivos... aguarde.";
     try {
       const report=await scan();
+      lastReport=report;
+      root.getElementById("download").disabled=false;
       const fallback=()=>{
         const ta=document.createElement("textarea");
         ta.value=report;
