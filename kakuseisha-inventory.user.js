@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.3
-// @description  Análise estática ampliada dos scripts públicos do jogo, sem executar ações. Lista recursos same-origin e pistas de módulos, além de analisar JS/MJS.
+// @version      0.3.4
+// @description  Inventaria recursos same-origin e analisa scripts externos e inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -62,15 +62,16 @@
     }));
     const preloads = [...document.querySelectorAll('link[rel="modulepreload"],link[rel="preload"][as="script"]')]
       .map(l => new URL(l.href, location.href).pathname);
-    const resources = uniq(performance.getEntriesByType("resource").map(r => {
+    const resources = performance.getEntriesByType("resource").map(r => {
       try {
         const u = new URL(r.name, location.href);
         if (u.origin !== location.origin) return null;
-        return u.pathname;
+        return { path:u.pathname, type:r.initiatorType || "unknown",
+          duration:Math.round(r.duration || 0), transfer:r.transferSize || 0,
+          body:r.encodedBodySize || 0 };
       } catch (_) { return null; }
-    }).filter(Boolean));
-    const clues = resources.filter(p => /combate|combat|jogo|game|sistema|quest|mission|battle|module|chunk|bundle|\.m?js(?:$|\?)/i.test(p));
-    return { scripts, preloads: uniq(preloads), clues: uniq(clues) };
+    }).filter(Boolean);
+    return { scripts, preloads: uniq(preloads), resources };
   }
 
   function discoverModuleUrls(source, baseUrl) {
@@ -133,13 +134,20 @@
     const queue = getUrls();
     const clues = resourceClues();
     const seen = new Set();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.3","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.4","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
       "### Scripts declarados no HTML",
       ...clues.scripts.map(x => x.type+" | "+x.src),
       "### Preloads de módulos/scripts",
       ...(clues.preloads.length ? clues.preloads : ["nenhum"]),
-      "### Recursos same-origin com nomes potencialmente relevantes",
-      ...(clues.clues.length ? clues.clues : ["nenhum além dos scripts já listados"]),
+      "### TODOS os recursos same-origin registrados (sem filtro por nome)",
+      ...(clues.resources.length ? clues.resources.map(x => x.path+" | tipo="+x.type+" | duração="+x.duration+"ms | transfer="+x.transfer+" | corpo="+x.body) : ["nenhum recurso registrado"]),
+      "",
+      "### Scripts inline com pistas de jogo",
+      ...[...document.scripts].filter(s => !s.src).flatMap((s,i) => {
+        const d = extract(s.textContent || "");
+        const hits = [...d.declarations, ...d.globals, ...d.endpoints, ...d.events, ...d.snippets].slice(0,12);
+        return hits.length ? ["Inline #"+(i+1)+":", ...hits.map(x => "- "+clean(String(x)).slice(0,260))] : [];
+      }),
       ""];
     while (queue.length && seen.size < 60) {
       const url = queue.shift();
