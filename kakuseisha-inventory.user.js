@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.7
+// @version      0.3.8
 // @description  Inventaria recursos same-origin e extrai extração de funções completas de missão, combate e raid nos scripts inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -162,7 +162,7 @@
     const queue = getUrls();
     const clues = resourceClues();
     const seen = new Set();
-    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.7","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
+    const out = ["KAKUSEISHA STATIC ANALYSIS 0.3.8","Página: "+location.origin+location.pathname,"Arquivos JS/MJS iniciais: "+queue.length,"",
       "### Scripts declarados no HTML",
       ...clues.scripts.map(x => x.type+" | "+x.src),
       "### Preloads de módulos/scripts",
@@ -252,7 +252,7 @@
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
     a.href=url;
-    a.download="kakuseisha-static-analysis-0.3.7.txt";
+    a.download="kakuseisha-static-analysis-0.3.8.txt";
     document.body.appendChild(a);
     a.click();
     a.remove();
