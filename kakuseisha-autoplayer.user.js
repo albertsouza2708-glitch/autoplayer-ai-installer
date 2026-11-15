@@ -247,7 +247,10 @@
   }
   async function finishMissionIfReady(s) {
     const active = s.g.atual;
-    if (!active) { finishingMissionId = ""; finishRequestedAt = 0; return false; }
+    if (!active) {
+      if (finishingMissionId) { missionCount++; log("Servidor confirmou o encerramento da missão."); }
+      finishingMissionId = ""; finishRequestedAt = 0; return false;
+    }
     const missionId = String(active.m || active.id || active.ini || "atual");
     if (finishingMissionId && finishingMissionId !== missionId) {
       missionCount++;
