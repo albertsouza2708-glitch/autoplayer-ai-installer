@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         KAKUSEISHA - Analisador técnico
+// @name         KAKUSEISHA - Analisador técnico 0.5
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.4.0
+// @version      0.5.0
 // @description  Inventaria recursos same-origin e extrai extração de funções completas de missão, combate e raid nos scripts inline, sem executar ações.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -193,13 +193,17 @@
           ...(battleSnips.length ? ["Trechos próximos às rotas/funções de batalha:", ...battleSnips.map((x,j)=>(j+1)+". "+x)] : []),
           "FUNÇÕES COMPLETAS PARA AUTOMACAO:",
           ...[
-            "novaAtividade","irParaMissao","minhaAtividade","renderColeta","txtRecomp",
-            "subDiarias","renderEvento","animEventoSamurai","animEventoPets","ligarEvento",
-            "ligarDiarias","renderCacar","ligarCacar","batalhaVista","renderBatalha",
-            "animaBatalha","fxDoEvento","batalhaApi","ligarBatalha","comparar",
-            "objetosExplor","desenhaExplor","explorEm","abrirExplor","pxItemPerto",
-            "limpaAtCli","nomeLugarMissao","usarBarra","raidAcao","ligarRaidBox",
-            "ligarRaid","api"
+            "novaAtividade","irParaMissao","voltarPraCasa","alvoDe","andarAte","minhaAtividade",
+            "missoesAbertas","renderMissoes","renderMissao","ligarMissoes","missaoAcao",
+            "aceitarMissao","novaMissao","proximaMissao","renderColeta","comecar","coletaAcao",
+            "txtRecomp","subDiarias","renderEvento","animEventoSamurai","animEventoPets",
+            "ligarEvento","ligarDiarias","renderCacar","ligarCacar","batalhaVista",
+            "renderBatalha","animaBatalha","fxDoEvento","batalhaApi","ligarBatalha",
+            "comparar","objetosExplor","desenhaExplor","explorEm","abrirExplor","pxItemPerto",
+            "limpaAtCli","nomeLugarMissao","usarBarra","itemBarra","renderLoja","renderOficina",
+            "lojaAcao","comprarItem","equiparItem","melhorarArma","evoluirArma","forjaAcao",
+            "renderInventario","renderMochila","renderPerfil","jornadaAcao","packAcao",
+            "api","novoPedido","carregarEu","renderJogo","ligarRaidBox","raidAcao","ligarRaid"
           ].map(name => {
             const fn = extractNamedFunction(source, name);
             return fn ? "\n--- " + name + " ---\n" + fn.slice(0, 10000) : null;
