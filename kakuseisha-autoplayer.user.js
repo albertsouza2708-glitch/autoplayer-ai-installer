@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA AutoPlayer AI 3.0
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.6.2
-// @description  AutoPlayer autônomo: missões, navegação real do personagem, combate, exploração, inventário, equipamentos e compras seguras.
+// @version      0.6.3
+// @description  AutoPlayer autônomo: missões, exploração programada, baús, caça, combate, eventos, mochila e equipamentos.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-autoplayer.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-autoplayer.user.js
@@ -73,6 +73,8 @@
   let lastMission = "", missionCount = 0, shopUntil = 0, lastShopTry = 0, lastShopVisit = 0;
   let finishingMissionId = "", finishRequestedAt = 0;
   let targetObject = null, targetSince = 0, lastRefresh = 0;
+  let lastExploreAt = 0, lastInventoryVisit = 0, inventoryUntil = 0, inventoryReturnAba = "missoes";
+  let eventHuntKey = "", attributeNoticeKey = "";
   const logLines = [];
 
   function log(message) {
@@ -284,14 +286,19 @@
     const level = playerLevel(s), p = s.p;
     const candidates = objects.filter(o => {
       if (!o || !o.d || !Number.isFinite(o.x) || !Number.isFinite(o.y)) return false;
-      if (o.tipo === "bau") return level >= Math.max(1,num(o.d.nivel)-15);
+      if (o.tipo === "bau") return !o.d.aberto && level >= Math.max(1,num(o.d.nivel)-15);
       if (o.tipo === "col") return !o.d.requer || (s.eu.inv||[]).some(id => {
         try { const it = LOJA_IDX.get(id); return it && it.ferramenta === o.d.requer; } catch (_) { return false; }
       });
       if (o.tipo === "mon") return (!o.d.minNivel || level >= o.d.minNivel) && num(o.d.nivel) <= level + 3 && o.d.rar !== "lendario" && o.d.rar !== "chefe";
+      if (o.tipo === "masm") return !o.feita && level >= num(o.d.nivel);
       return false;
     });
-    candidates.sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y));
+    // Baús têm prioridade sobre alvos de combate quando estão a distância parecida.
+    candidates.sort((a,b)=>{
+      const penalty=o=>o.tipo==="bau"?-45:o.tipo==="col"?8:o.tipo==="masm"?35:0;
+      return (Math.hypot(a.x-p.x,a.y-p.y)+penalty(a))-(Math.hypot(b.x-p.x,b.y-p.y)+penalty(b));
+    });
     return candidates[0] || null;
   }
   async function exploreStep(s) {
@@ -301,6 +308,7 @@
       targetObject = explorationTarget(s);
       targetSince = Date.now();
       if (!targetObject) return false;
+      lastExploreAt = Date.now();
       status("Explorando o mapa: indo até " + (targetObject.d.nome || targetObject.tipo) + "…");
       s.p.ir = {x:targetObject.x,y:targetObject.y+4,vel:55,toque:true};
       s.g.seguir = true;
@@ -316,6 +324,75 @@
       status("Executando exploração: " + (o.d.nome || o.tipo));
       action.click();
       log("Interagiu com " + (o.d.nome || o.tipo) + " (" + o.tipo + ").");
+      return true;
+    }
+    return false;
+  }
+  async function huntSpecialTarget(s) {
+    if (typeof batalhaApi !== "function" || s.r.batalha) return false;
+    const wanted = s.r.procurado;
+    const day = new Date().toISOString().slice(0,10);
+    if (wanted && wanted.id && !wanted.feito) {
+      const key = "procurado:"+day+":"+wanted.id;
+      if (eventHuntKey !== key) {
+        eventHuntKey = key;
+        status("Caçando o procurado do dia: "+(wanted.nome||wanted.id)+" — XP em dobro e prêmio!");
+        await batalhaApi("batalha",{monstro:wanted.id});
+        log("Iniciou a caça do procurado do dia: "+(wanted.nome||wanted.id)+".");
+        return true;
+      }
+    }
+    const ev = s.d.evento;
+    const eventMonster = ev && (s.d.monstros||[]).find(m=>m.evento && m.evento===ev.tipo &&
+      (!m.minNivel || playerLevel(s)>=m.minNivel) && num(m.nivel)<=playerLevel(s)+2 &&
+      m.rar!=="chefe" && m.rar!=="lendario");
+    if (eventMonster) {
+      const key = "evento:"+String(ev.tipo)+":"+eventMonster.id;
+      if (eventHuntKey !== key) {
+        eventHuntKey = key;
+        status("Caçando criatura do evento: "+(eventMonster.nome||eventMonster.id)+"…");
+        await batalhaApi("batalha",{monstro:eventMonster.id});
+        log("Iniciou combate contra criatura do evento: "+(eventMonster.nome||eventMonster.id)+".");
+        return true;
+      }
+    }
+    return false;
+  }
+  async function inventoryMaintenance(s) {
+    if (inventoryUntil) {
+      if (Date.now() < inventoryUntil) {
+        status("Conferindo a mochila e os equipamentos…");
+        return true;
+      }
+      aba = inventoryReturnAba || "missoes";
+      renderJogo();
+      inventoryUntil = 0;
+      return true;
+    }
+    if (Date.now()-lastInventoryVisit < 90000) return false;
+    lastInventoryVisit = Date.now();
+    inventoryReturnAba = typeof aba === "string" ? aba : "missoes";
+    if (await equipBestWeapon(s)) return true;
+    if (typeof abaPerfil !== "undefined") abaPerfil = "mochila";
+    aba = "perfil";
+    renderJogo();
+    inventoryUntil = Date.now()+3200;
+    status("Abrindo a MOCHILA para revisar equipamentos, poções e materiais…");
+    log("Abriu a mochila para revisão automática.");
+    return true;
+  }
+  async function attributePointCheck(s) {
+    const free = num(s.r.linhagem && s.r.linhagem.livres);
+    if (!free) return false;
+    const key = String(free)+":"+String(s.r.nivel);
+    if (attributeNoticeKey !== key) {
+      attributeNoticeKey = key;
+      inventoryReturnAba = typeof aba === "string" ? aba : "missoes";
+      aba = "perfil";
+      if (typeof abaPerfil !== "undefined") abaPerfil = "ficha";
+      renderJogo();
+      status("Você tem "+free+" ponto(s) de atributo. Abri sua ficha; a ação de distribuir ainda precisa do comando oficial do jogo.");
+      log("Pontos de atributo detectados: "+free+". Não gastei sem confirmar o comando oficial.");
       return true;
     }
     return false;
@@ -403,15 +480,17 @@
       }
       if (s.g.atual && await finishMissionIfReady(s)) return;
       if (await claimEventReward(s)) return;
+      if (await huntSpecialTarget(s)) return;
+      if (await attributePointCheck(s)) return;
       if (await shopAndEquip(s)) return;
+      if (await inventoryMaintenance(s)) return;
       const mode = $("mode").value;
-      if (mode === "explore") {
-        if (await exploreStep(s)) return;
-        if (await startMission(s)) return;
-      } else {
-        if (await startMission(s)) return;
-        if (mode === "balanced" && await exploreStep(s)) return;
-      }
+      // No modo equilibrado, a exploração entra no ciclo mesmo quando há missões disponíveis.
+      // O alvo selecionado continua sendo acompanhado até a interação terminar.
+      const exploreDue = mode === "explore" || !!targetObject || Date.now()-lastExploreAt >= 45000;
+      if (exploreDue && await exploreStep(s)) return;
+      if (await startMission(s)) return;
+      if (await exploreStep(s)) return;
       status("Sem missão ou exploração disponível agora. Vou verificar novamente.");
       if (Date.now()-lastRefresh > 20000 && typeof api === "function") {
         lastRefresh = Date.now();
