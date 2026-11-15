@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KAKUSEISHA - Analisador técnico
 // @namespace    https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
-// @version      0.3.0
-// @description  Análise estática ampliada dos scripts públicos do jogo, sem executar ações.
+// @version      0.3.1
+// @description  Análise estática ampliada dos scripts públicos do jogo, sem executar ações. Corrige inicialização da interface.
 // @homepageURL  https://github.com/albertsouza2708-glitch/autoplayer-ai-installer
 // @downloadURL  https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
 // @updateURL    https://raw.githubusercontent.com/albertsouza2708-glitch/autoplayer-ai-installer/main/kakuseisha-inventory.user.js
@@ -22,7 +22,7 @@
   host.id = HOST_ID;
   host.style.cssText = "position:fixed;z-index:2147483647;left:10px;bottom:58px;font:13px system-ui,sans-serif;color:#fff";
   const root = host.attachShadow({mode:"open"});
-  root.innerHTML = \`
+  root.innerHTML = `
     <style>
       .wrap{background:#172033;border:1px solid #64748b;border-radius:12px;padding:10px;box-shadow:0 4px 20px #0008;max-width:min(340px,calc(100vw - 20px))}
       button{background:#7c3aed;color:white;border:0;border-radius:8px;padding:10px 12px;font-weight:700}
@@ -33,7 +33,7 @@
       <button id="scan">Analisar código do jogo</button>
       <p>Leitura estática de JavaScript público. Não clica, não luta, não envia comandos e não lê cookies, senhas ou valores de campos.</p>
       <div id="status">Pronto para analisar.</div>
-    </div>\`;
+    </div>`;
   document.documentElement.appendChild(host);
 
   const uniq = a => [...new Set(a)];
