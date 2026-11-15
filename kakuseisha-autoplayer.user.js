@@ -62,7 +62,7 @@
 
   const $ = id => shadow.getElementById(id);
   let running = false, busy = false, timer = 0, lastActionAt = 0;
-  let lastMission = "", missionCount = 0, shopUntil = 0, lastShopTry = 0;
+  let lastMission = "", missionCount = 0, shopUntil = 0, lastShopTry = 0, lastShopVisit = 0;
   let targetObject = null, targetSince = 0, lastRefresh = 0;
   const logLines = [];
 
@@ -322,7 +322,8 @@
       }
       return true;
     }
-    if (Date.now() > lastShopTry+90000 && num(s.eu.moedas) >= 50 && missionCount > 0 && missionCount % 3 === 0) {
+    if (Date.now() > lastShopVisit+90000 && num(s.eu.moedas) >= 50 && missionCount > 0 && missionCount % 3 === 0) {
+      lastShopVisit = Date.now();
       aba = "loja";
       if (typeof abaMerc !== "undefined") abaMerc = "vila";
       renderJogo();
@@ -341,6 +342,24 @@
     busy = true;
     try {
       if (s.r.batalha && await battleStep(s)) return;
+      if (typeof JG.raid !== "undefined" && JG.raid && JG.raid.sala && JG.raid.sala.status === "luta") {
+        if (typeof aba !== "undefined" && aba !== "raid") { aba = "raid"; renderJogo(); status("Entrando na interface da raid em andamento…"); return; }
+        const raidBox = document.getElementById("raidBox");
+        const attack = raidBox && raidBox.querySelector("[data-rhab]:not(:disabled)");
+        const item = raidBox && raidBox.querySelector("[data-ritem]:not(:disabled)");
+        const defend = raidBox && raidBox.querySelector("[data-rdef]:not(:disabled)");
+        if (attack && typeof raidAcao === "function") {
+          await raidAcao("agir",{tipo:"hab",id:attack.dataset.rhab,rodada:JG.raid.sala.rodada});
+          log("Ação executada na raid.");
+        } else if (item && typeof raidAcao === "function") {
+          await raidAcao("agir",{tipo:"item",id:item.dataset.ritem,rodada:JG.raid.sala.rodada});
+          log("Item usado na raid.");
+        } else if (defend && typeof raidAcao === "function") {
+          await raidAcao("agir",{tipo:"defender",rodada:JG.raid.sala.rodada});
+          log("Defesa executada na raid.");
+        } else { status("Raid em andamento; aguardando sua vez/atualização."); }
+        return;
+      }
       if (s.g.atual && await finishMissionIfReady(s)) return;
       if (await claimEventReward(s)) return;
       if (await shopAndEquip(s)) return;
@@ -370,6 +389,7 @@
   }
   function start() {
     if (running) return;
+    if (typeof JG === "undefined") { status("O Tampermonkey não conseguiu acessar o contexto do jogo. Verifique se o script está atualizado e se o modo de execução da página está ativo."); return; }
     running = true;
     $("start").disabled = true;
     $("stop").disabled = false;
